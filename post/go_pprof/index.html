@@ -49,7 +49,7 @@
 <meta itemprop="name" content="go_pprof">
 <meta itemprop="description" content="Go pprof Linux 内存查看方法 top top -p pid 查看指定进程资源消耗情况 1 2 PID USER PR NI VIRT RES SHR S %CPU %MEM TIME&#43; COMMAND 27503 root 20 0 1602556 52368 23696 S 2.0 0.3 3:47.71 curator VIRT：进程使用的虚拟内存总量，单位"><meta itemprop="datePublished" content="2021-03-28T22:14:55&#43;08:00" />
 <meta itemprop="dateModified" content="2021-03-28T22:14:55&#43;08:00" />
-<meta itemprop="wordCount" content="7277">
+<meta itemprop="wordCount" content="6874">
 <meta itemprop="keywords" content="golang,pprof," /><meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="go_pprof"/>
 <meta name="twitter:description" content="Go pprof Linux 内存查看方法 top top -p pid 查看指定进程资源消耗情况 1 2 PID USER PR NI VIRT RES SHR S %CPU %MEM TIME&#43; COMMAND 27503 root 20 0 1602556 52368 23696 S 2.0 0.3 3:47.71 curator VIRT：进程使用的虚拟内存总量，单位"/>
@@ -161,7 +161,6 @@
             <li><a href="#阻塞问题">阻塞问题</a></li>
             <li><a href="#base的使用">base的使用</a></li>
             <li><a href="#如何生成调用关系图和火焰图">如何生成调用关系图和火焰图</a></li>
-            <li><a href="#hscs项目怎么定位到具体代码">HSCS项目怎么定位到具体代码</a></li>
           </ul>
         </li>
         <li><a href="#runtimepprof使用">runtime/pprof使用</a>
@@ -266,8 +265,8 @@ VmPTE:      表示进程页表项的大小</p>
 </span></code></pre></td>
 <td class="lntd">
 <pre class="chroma"><code class="language-fallback" data-lang="fallback">$ docker stats 2a328a9d5854
-CONTAINER ID        NAME                                                                                   CPU %               MEM USAGE / LIMIT   MEM %               NET I/O             BLOCK I/O           PIDS
-2a328a9d5854        k8s_hscs-defender_hscs-defender-ds-rg6wk_hscs_4abf6a0d-e99a-4b3f-ada7-a2267c07a3fb_0   2.43%               53.89MiB / 2GiB     2.63%               0B / 0B             0B / 0B             39
+CONTAINER ID        NAME   CPU %               MEM USAGE / LIMIT   MEM %               NET I/O             BLOCK I/O           PIDS
+2a328a9d5854        test   2.43%               53.89MiB / 2GiB     2.63%               0B / 0B             0B / 0B             39
 </code></pre></td></tr></table>
 </div>
 </div><h2 id="什么是go-pprof">什么是go pprof</h2>
@@ -1090,41 +1089,6 @@ Graph 可以查看调用关系图，框越大，线约粗代表内存消耗越�
 <p>Flame Graph 查看火焰图
 <img src="https://raw.githubusercontent.com/oldfo4/pic/main/20201217142742773_18480.png" alt=""></p>
 <p>火焰图中越宽代表使用内存越多</p>
-<h3 id="hscs项目怎么定位到具体代码">HSCS项目怎么定位到具体代码</h3>
-<p>通常对于HSCS项目中的代码，使用命令行排查，再配合浏览器中查看调用图和火焰图已经能看到很多信息了。
-<code>list</code>会报错，因为HSCS的代码并不在调试环境中</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span></code></pre></td>
-<td class="lntd">
-<pre class="chroma"><code class="language-fallback" data-lang="fallback">$ go tool pprof -alloc_space http://10.180.169.226:8899/debug/pprof/heap
-Fetching profile over HTTP from http://10.180.169.226:8899/debug/pprof/heap
-Saved profile in /root/pprof/pprof.curator.alloc_objects.alloc_space.inuse_objects.inuse_space.007.pb.gz
-File: curator
-
-</code></pre></td></tr></table>
-</div>
-</div><p>运行pprof命令之后，这边提示将采样文件保存在<code>/root/pprof/pprof.curator.alloc_objects.alloc_space.inuse_objects.inuse_space.007.pb.gz</code>，可以把文件导出，放在编译服务器上查看。</p>
-<ul>
-<li>将采样文件拷贝到编译服务器的项目目录下</li>
-<li>开启一个编译容器，做好代码目录映射</li>
-</ul>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt">1
-</span></code></pre></td>
-<td class="lntd">
-<pre class="chroma"><code class="language-fallback" data-lang="fallback">sudo docker run -it -v /home/wjye/go_workspace/src/HSCS_MAIN:/root/hscs/ 10.100.1.254:5000/mygo:vlatest /bin/bash
-</code></pre></td></tr></table>
-</div>
-</div><ul>
-<li><code>go tool pprof /root/pprof/pprof.curator.alloc_objects.alloc_space.inuse_objects.inuse_space.007.pb.gz</code>，此时处在编译容器中，list可以看到对应的代码</li>
-</ul>
 <h2 id="runtimepprof使用">runtime/pprof使用</h2>
 <p>上面的net/http/pprof 提供WEB接口来使用pprof，本质上是把runtime/pprof封装，可以直接调用runtime/pprof的接口，具有很大的灵活性</p>
 <h3 id="cpu-1">cpu</h3>
