@@ -1,2 +1,2 @@
 User-agent: *
-Sitemap: http://oldfo.cn:8080/sitemap.xml
+Sitemap: https://oldfo4.github.io/sitemap.xml
