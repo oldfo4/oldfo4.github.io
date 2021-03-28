@@ -1,0 +1,1703 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <title>Go pprof 使用详解 - oldfo - 测试博客</title>
+  <meta name="renderer" content="webkit" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+<meta name="theme-color" content="#f8f5ec" />
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+<meta name="author" content="oldfo" /><meta name="description" content="Go pprof Linux 内存查看方法 top top -p pid 查看指定进程资源消耗情况 1 2 PID USER PR NI VIRT RES SHR S %CPU %MEM TIME&#43; COMMAND 27503 root 20 0 1602556 52368 23696 S 2.0 0.3 3:47.71 curator VIRT：进程使用的虚拟内存总量，单位" /><meta name="keywords" content="Hugo, theme, even" />
+
+
+
+
+
+
+<meta name="generator" content="Hugo 0.82.0 with theme even" />
+
+
+<link rel="canonical" href="http://oldfo.cn:8080/post/go_pprof/" />
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/manifest.json">
+<link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
+
+
+
+<link href="/sass/main.min.39a3e01cac9473be1356f3572fcfe34b2e363efabad244a99a40f28a812c837e.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.1.20/dist/jquery.fancybox.min.css" integrity="sha256-7TyXnr2YU040zfSP+rEcz29ggW4j56/ujTPwjMzyqFY=" crossorigin="anonymous">
+
+
+<meta property="og:title" content="Go pprof 使用详解" />
+<meta property="og:description" content="Go pprof Linux 内存查看方法 top top -p pid 查看指定进程资源消耗情况 1 2 PID USER PR NI VIRT RES SHR S %CPU %MEM TIME&#43; COMMAND 27503 root 20 0 1602556 52368 23696 S 2.0 0.3 3:47.71 curator VIRT：进程使用的虚拟内存总量，单位" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="http://oldfo.cn:8080/post/go_pprof/" /><meta property="article:section" content="post" />
+<meta property="article:published_time" content="2021-03-22T22:23:22&#43;08:00" />
+<meta property="article:modified_time" content="2021-03-22T22:23:22&#43;08:00" />
+
+<meta itemprop="name" content="Go pprof 使用详解">
+<meta itemprop="description" content="Go pprof Linux 内存查看方法 top top -p pid 查看指定进程资源消耗情况 1 2 PID USER PR NI VIRT RES SHR S %CPU %MEM TIME&#43; COMMAND 27503 root 20 0 1602556 52368 23696 S 2.0 0.3 3:47.71 curator VIRT：进程使用的虚拟内存总量，单位"><meta itemprop="datePublished" content="2021-03-22T22:23:22&#43;08:00" />
+<meta itemprop="dateModified" content="2021-03-22T22:23:22&#43;08:00" />
+<meta itemprop="wordCount" content="7286">
+<meta itemprop="keywords" content="" /><meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Go pprof 使用详解"/>
+<meta name="twitter:description" content="Go pprof Linux 内存查看方法 top top -p pid 查看指定进程资源消耗情况 1 2 PID USER PR NI VIRT RES SHR S %CPU %MEM TIME&#43; COMMAND 27503 root 20 0 1602556 52368 23696 S 2.0 0.3 3:47.71 curator VIRT：进程使用的虚拟内存总量，单位"/>
+
+<!--[if lte IE 9]>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
+<![endif]-->
+
+<!--[if lt IE 9]>
+  <script src="https://cdn.jsdelivr.net/npm/html5shiv@3.7.3/dist/html5shiv.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/respond.js@1.4.2/dest/respond.min.js"></script>
+<![endif]-->
+
+</head>
+<body>
+  <div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/" class="logo">Oldfo</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    <a href="/">
+        <li class="mobile-menu-item">Home</li>
+      </a><a href="/post/">
+        <li class="mobile-menu-item">Archives</li>
+      </a><a href="/tags/">
+        <li class="mobile-menu-item">Tags</li>
+      </a><a href="/categories/">
+        <li class="mobile-menu-item">Categories</li>
+      </a>
+  </ul>
+
+  
+
+
+</nav>
+
+  <div class="container" id="mobile-panel">
+    <header id="header" class="header">
+        <div class="logo-wrapper">
+  <a href="/" class="logo">Oldfo</a>
+</div>
+
+
+
+
+
+<nav class="site-navbar">
+  <ul id="menu" class="menu">
+    <li class="menu-item">
+        <a class="menu-item-link" href="/">Home</a>
+      </li><li class="menu-item">
+        <a class="menu-item-link" href="/post/">Archives</a>
+      </li><li class="menu-item">
+        <a class="menu-item-link" href="/tags/">Tags</a>
+      </li><li class="menu-item">
+        <a class="menu-item-link" href="/categories/">Categories</a>
+      </li>
+  </ul>
+</nav>
+
+    </header>
+
+    <main id="main" class="main">
+      <div class="content-wrapper">
+        <div id="content" class="content">
+          <article class="post">
+    
+    <header class="post-header">
+      <h1 class="post-title">Go pprof 使用详解</h1>
+
+      <div class="post-meta">
+        <span class="post-time"> 2021-03-22 </span>
+        
+        
+      </div>
+    </header>
+
+    <div class="post-toc" id="post-toc">
+  <h2 class="post-toc-title">文章目录</h2>
+  <div class="post-toc-content always-active">
+    <nav id="TableOfContents">
+  <ul>
+    <li><a href="#go-pprof">Go pprof</a>
+      <ul>
+        <li><a href="#linux-内存查看方法">Linux 内存查看方法</a>
+          <ul>
+            <li><a href="#top">top</a></li>
+            <li><a href="#cat-procpidstatus">cat /proc/pid/status</a></li>
+            <li><a href="#docker-stats">docker stats</a></li>
+          </ul>
+        </li>
+        <li><a href="#什么是go-pprof">什么是go pprof</a></li>
+        <li><a href="#开启pprof">开启pprof</a></li>
+        <li><a href="#pprof-使用">pprof 使用</a>
+          <ul>
+            <li><a href="#示例程序">示例程序</a></li>
+            <li><a href="#cpu">CPU</a></li>
+            <li><a href="#内存问题">内存问题</a></li>
+            <li><a href="#gc问题">GC问题</a></li>
+            <li><a href="#goroutine-泄露">goroutine 泄露</a></li>
+            <li><a href="#锁竞争问题">锁竞争问题</a></li>
+            <li><a href="#阻塞问题">阻塞问题</a></li>
+            <li><a href="#base的使用">base的使用</a></li>
+            <li><a href="#如何生成调用关系图和火焰图">如何生成调用关系图和火焰图</a></li>
+            <li><a href="#hscs项目怎么定位到具体代码">HSCS项目怎么定位到具体代码</a></li>
+          </ul>
+        </li>
+        <li><a href="#runtimepprof使用">runtime/pprof使用</a>
+          <ul>
+            <li><a href="#cpu-1">cpu</a></li>
+            <li><a href="#memory">memory</a></li>
+            <li><a href="#trace">trace</a></li>
+            <li><a href="#其他">其他</a></li>
+          </ul>
+        </li>
+        <li><a href="#golang的gc">Golang的GC</a>
+          <ul>
+            <li><a href="#实例程序">实例程序</a></li>
+            <li><a href="#开启gc-trace">开启GC trace</a></li>
+            <li><a href="#使用pprof定位gc问题">使用pprof定位gc问题</a></li>
+            <li><a href="#gc模式madv">GC模式MADV</a></li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+    <li><a href="#一些精彩的参考资料">一些精彩的参考资料</a></li>
+  </ul>
+</nav>
+  </div>
+</div>
+    <div class="post-content">
+      <h1 id="go-pprof">Go pprof</h1>
+<h2 id="linux-内存查看方法">Linux 内存查看方法</h2>
+<h3 id="top">top</h3>
+<p>top -p pid 查看指定进程资源消耗情况</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash">  PID USER      PR  NI    VIRT    RES    SHR S  %CPU %MEM     TIME+ COMMAND
+<span class="m">27503</span> root      <span class="m">20</span>   <span class="m">0</span> <span class="m">1602556</span>  <span class="m">52368</span>  <span class="m">23696</span> S   2.0  0.3   3:47.71 curator
+</code></pre></td></tr></table>
+</div>
+</div><blockquote>
+<p>VIRT：进程使用的虚拟内存总量，单位kb
+RES： 进程使用的、未被换出的物理内存大小，单位kb
+SHR：共享内存大小，单位kb
+%MEM：进程使用的可用物理内存百分比</p>
+</blockquote>
+<h3 id="cat-procpidstatus">cat /proc/pid/status</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-fallback" data-lang="fallback">$ cat /proc/27503/status | grep Vm
+VmPeak:  1668092 kB
+VmSize:  1602556 kB
+VmLck:         0 kB
+VmPin:         0 kB
+VmHWM:     53016 kB
+VmRSS:     52572 kB
+VmData:  1522568 kB
+VmStk:       132 kB
+VmExe:     51940 kB
+VmLib:      2600 kB
+VmPTE:       352 kB
+VmSwap:        0 kB
+
+</code></pre></td></tr></table>
+</div>
+</div><blockquote>
+<p>VmPeak:     表示进程所占用最大虚拟内存
+VmSize:      表示进程当前虚拟内存，跟top中VIRT对应
+VmLck:       表示被锁定的内存
+VmHWM:    表示进程所占用物理内存的峰值
+VmRSS:     表示进程当前占用物理内存的，跟top中RES对应
+VmData:     表示进程数据段的大小
+VmStk:       表示进程堆栈段的大小
+VmExe:      表示进程代码的大小
+VmLib:       表示进程所使用共享库的大小
+VmPTE:      表示进程页表项的大小</p>
+</blockquote>
+<p>比较关注的是，top中的RES和status中的VmRss和VmHWM，能准确反映出进程当前使用的物理内存大小，和曾经使用的物理内存峰值大小。</p>
+<h3 id="docker-stats">docker stats</h3>
+<p>查看容器当前占用物理内存的大小</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-fallback" data-lang="fallback">$ docker stats 2a328a9d5854
+CONTAINER ID        NAME                                                                                   CPU %               MEM USAGE / LIMIT   MEM %               NET I/O             BLOCK I/O           PIDS
+2a328a9d5854        k8s_hscs-defender_hscs-defender-ds-rg6wk_hscs_4abf6a0d-e99a-4b3f-ada7-a2267c07a3fb_0   2.43%               53.89MiB / 2GiB     2.63%               0B / 0B             0B / 0B             39
+</code></pre></td></tr></table>
+</div>
+</div><h2 id="什么是go-pprof">什么是go pprof</h2>
+<p>程序运行过程中主要关注 CPU、内存、磁盘 IO、网络这些指标，Go 程序还会额外关注 blocks、mutex 和 goroutine信息。
+Profiling 是指在程序执行过程中，收集能够反映程序执行状态的数据。在软件工程中，性能分析（performance analysis，也称为 profiling），是以收集程序运行时信息为手段研究程序行为的分析方法，是一种动态程序分析的方法。</p>
+<p>Go 语言自带的 pprof 库就可以分析程序的运行情况，并且提供可视化的功能。可以提供以下数据：</p>
+<blockquote>
+<p>allocs: A sampling of all past memory allocations
+block: Stack traces that led to blocking on synchronization primitives
+cmdline: The command line invocation of the current program
+goroutine: Stack traces of all current goroutines
+heap: A sampling of memory allocations of live objects. You can specify the gc GET parameter to run GC before taking the heap sample.
+mutex: Stack traces of holders of contended mutexes
+profile: CPU profile. You can specify the duration in the seconds GET parameter. After you get the profile file, use the go tool pprof command to investigate the profile.
+threadcreate: Stack traces that led to the creation of new OS threads
+trace: A trace of execution of the current program. You can specify the duration in the seconds GET parameter. After you get the trace file, use the go tool trace command to investigate the trace.</p>
+</blockquote>
+<p><img src="_v_images/20201216174816446_24222.png" alt="采样信息"></p>
+<h2 id="开启pprof">开启pprof</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-fallback" data-lang="fallback">Import (
+&#34;net/http&#34;
+_ &#34;net/http/pprof&#34;
+)
+
+// 在进程的main函数中加上
+go func() {
+    http.ListenAndServe(&#34;0.0.0.0:8899&#34;, nil)
+}()
+
+</code></pre></td></tr></table>
+</div>
+</div><p>浏览器打开 http://your-ip:8899/debug/pprof/ 可以看到页面内容</p>
+<h2 id="pprof-使用">pprof 使用</h2>
+<p>浏览器查看并不方便，通常使用交互命令行来查看信息</p>
+<h3 id="示例程序">示例程序</h3>
+<p>示例程序来源于文档《golang pprof 实战》，代码位于 <code>github.com/wolfogre/go-pprof-practice</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-fallback" data-lang="fallback">git clone github.com/wolfogre/go-pprof-practice
+cd github.com/wolfogre/go-pprof-practice
+go build
+./go-pprof-practice
+</code></pre></td></tr></table>
+</div>
+</div><p>首先top看看</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-fallback" data-lang="fallback"> PID USER      PR  NI    VIRT    RES    SHR S  %CPU %MEM     TIME+ COMMAND
+ 5805 root      20   0 2988740   2.1g   2904 S  99.7 13.3   0:43.19 go-pprof-practi
+</code></pre></td></tr></table>
+</div>
+</div><p>内存占用2.1g，cpu一直100%</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-fallback" data-lang="fallback">$ cat /proc/`pidof go-pprof-practice`/status | grep Vm
+VmPeak:  2988740 kB
+VmSize:  2988740 kB
+VmLck:         0 kB
+VmPin:         0 kB
+VmHWM:   2168812 kB
+VmRSS:   2168812 kB
+VmData:  2975608 kB
+VmStk:       132 kB
+VmExe:      3532 kB
+VmLib:      2036 kB
+VmPTE:      4336 kB
+VmSwap:        0 kB
+</code></pre></td></tr></table>
+</div>
+</div><p>proc看到内存也是2.1g，所以内存和cpu使用肯定有问题，从浏览器打开看看
+<img src="_v_images/20201217113947975_23294.png" alt=""></p>
+<p>block 显示有阻塞情况
+goroutine 数量太多，可能有泄露
+mutex 显示有一个锁争抢
+这几个信息都需要根据实际业务代码来分析，有数据并不一定就异常，但是高性能的代码应该要警惕和谨慎出现这些情况。
+下面使用 pprof 来逐个分析</p>
+<h3 id="cpu">CPU</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-fallback" data-lang="fallback">$ go tool pprof http://127.0.0.1:6060/debug/pprof/profile
+Fetching profile over HTTP from http://127.0.0.1:6060/debug/pprof/profile
+Saved profile in /root/pprof/pprof.go-pprof-practice.samples.cpu.001.pb.gz
+File: go-pprof-practice
+Type: cpu
+Time: Dec 17, 2020 at 1:31pm (CST)
+Duration: 30.20s, Total samples = 21s (69.54%)
+Entering interactive mode (type &#34;help&#34; for commands, &#34;o&#34; for options)
+(pprof) top
+Showing nodes accounting for 20.98s, 99.90% of 21s total
+Dropped 12 nodes (cum &lt;= 0.10s)
+      flat  flat%   sum%        cum   cum%
+    20.98s 99.90% 99.90%     20.99s   100%  github.com/wolfogre/go-pprof-practice/animal/felidae/tiger.(*Tiger).Eat
+         0     0% 99.90%     20.99s   100%  github.com/wolfogre/go-pprof-practice/animal/felidae/tiger.(*Tiger).Live
+         0     0% 99.90%        21s   100%  main.main
+         0     0% 99.90%        21s   100%  runtime.main
+(pprof) list Eat
+Total: 21s
+ROUTINE ======================== github.com/wolfogre/go-pprof-practice/animal/canidae/wolf.(*Wolf).Eat in /root/go_workspace/src/github.com/wolfogre/go-pprof-practice/animal/canidae/wolf/wolf.go
+         0       10ms (flat, cum) 0.048% of Total
+         .          .     22:   w.Run()
+         .          .     23:   w.Howl()
+         .          .     24:}
+         .          .     25:
+         .          .     26:func (w *Wolf) Eat() {
+         .       10ms     27:   log.Println(w.Name(), &#34;eat&#34;)
+         .          .     28:}
+         .          .     29:
+         .          .     30:func (w *Wolf) Drink() {
+         .          .     31:   log.Println(w.Name(), &#34;drink&#34;)
+         .          .     32:   for i := 0; i &lt; 10; i++ {
+ROUTINE ======================== github.com/wolfogre/go-pprof-practice/animal/felidae/tiger.(*Tiger).Eat in /root/go_workspace/src/github.com/wolfogre/go-pprof-practice/animal/felidae/tiger/tiger.go
+    20.98s     20.99s (flat, cum)   100% of Total
+         .          .     19:}
+         .          .     20:
+         .          .     21:func (t *Tiger) Eat() {
+         .          .     22:   log.Println(t.Name(), &#34;eat&#34;)
+         .          .     23:   loop := 10000000000
+    20.98s     20.99s     24:   for i := 0; i &lt; loop; i++ {
+         .          .     25:           // do nothing
+         .          .     26:   }
+         .          .     27:}
+         .          .     28:
+         .          .     29:func (t *Tiger) Drink() {
+
+</code></pre></td></tr></table>
+</div>
+</div><p><code>top</code>用于显示消耗 CPU （默认前10个，top数字表示显示前N个）的函数，每一行代表一个函数，每一列为一项指标:
+flat：给定函数上运行耗时
+flat%：同上的 CPU 运行耗时总比例
+sum%：给定函数累积使用 CPU 总比例
+cum：当前函数加上它之上的调用运行总耗时
+cum%：同上的 CPU 运行耗时总比例</p>
+<p><code>list</code> 用于查看对应函数的代码</p>
+<p>上面例子中循环占用大量CPU，注释掉再次启动程序</p>
+<h3 id="内存问题">内存问题</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-fallback" data-lang="fallback">$ go tool pprof http://127.0.0.1:6060/debug/pprof/heap
+Fetching profile over HTTP from http://127.0.0.1:6060/debug/pprof/heap
+Saved profile in /root/pprof/pprof.go-pprof-practice.alloc_objects.alloc_space.inuse_objects.inuse_space.001.pb.gz
+File: go-pprof-practice
+Type: inuse_space
+Time: Dec 17, 2020 at 1:40pm (CST)
+Entering interactive mode (type &#34;help&#34; for commands, &#34;o&#34; for options)
+(pprof) top
+Showing nodes accounting for 768MB, 100% of 768MB total
+      flat  flat%   sum%        cum   cum%
+     768MB   100%   100%      768MB   100%  github.com/wolfogre/go-pprof-practice/animal/muridae/mouse.(*Mouse).Steal
+         0     0%   100%      768MB   100%  github.com/wolfogre/go-pprof-practice/animal/muridae/mouse.(*Mouse).Live
+         0     0%   100%      768MB   100%  main.main
+         0     0%   100%      768MB   100%  runtime.main
+(pprof) list Steal
+Total: 768MB
+ROUTINE ======================== github.com/wolfogre/go-pprof-practice/animal/muridae/mouse.(*Mouse).Steal in /root/go_workspace/src/github.com/wolfogre/go-pprof-practice/animal/muridae/mouse/mouse.go
+     768MB      768MB (flat, cum)   100% of Total
+         .          .     45:
+         .          .     46:func (m *Mouse) Steal() {
+         .          .     47:   log.Println(m.Name(), &#34;steal&#34;)
+         .          .     48:   max := constant.Gi
+         .          .     49:   for len(m.buffer) * constant.Mi &lt; max {
+     768MB      768MB     50:           m.buffer = append(m.buffer, [constant.Mi]byte{})
+         .          .     51:   }
+         .          .     52:}
+(pprof)
+
+</code></pre></td></tr></table>
+</div>
+</div><p>可以看到，这里有个循环会一直向 m.buffer 里追加长度为 1 MiB 的数组，直到总容量到达 1 GiB 为止，且一直不释放这些内存，这就难怪会有这么高的内存占用了。
+同样注释掉继续运行</p>
+<h3 id="gc问题">GC问题</h3>
+<p>现在无论是top还是proc看到程序的cpu和内存使用都不再异常，但是频繁的 GC 对 golang 程序性能的影响也是非常严重的。虽然现在这个炸弹程序内存使用量并不高，但这会不会是频繁 GC 之后的假象呢？
+为了获取程序运行过程中 GC 日志，我们需要先退出炸弹程序，再在重新启动前赋予一个环境变量，同时为了避免其他日志的干扰，使用 grep 筛选出 GC 日志查看：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-fallback" data-lang="fallback">GODEBUG=&#39;gctrace=1&#39; ./go-pprof-practice | grep gc
+</code></pre></td></tr></table>
+</div>
+</div><p>运行一段时间看到控制台上一直发生GC，每3s一次，每次从16M回收到0M</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-fallback" data-lang="fallback">c 1 @0.005s 2%: 0.019+0.70+0.022 ms clock, 0.019+0.25/0.18/0+0.022 ms cpu, 16-&gt;16-&gt;0 MB, 17 MB goal, 1 P
+gc 2 @3.021s 0%: 0.028+0.70+0.004 ms clock, 0.028+0.23/0.25/0+0.004 ms cpu, 16-&gt;16-&gt;0 MB, 17 MB goal, 1 P
+gc 3 @6.032s 0%: 0.052+0.57+0.004 ms clock, 0.052+0.23/0.28/0+0.004 ms cpu, 16-&gt;16-&gt;0 MB, 17 MB goal, 1 P
+gc 4 @9.044s 0%: 0.051+0.74+0.004 ms clock, 0.051+0.23/0.23/0+0.004 ms cpu, 16-&gt;16-&gt;0 MB, 17 MB goal, 1 P
+gc 5 @12.055s 0%: 0.041+0.73+0.004 ms clock, 0.041+0.21/0.26/0+0.004 ms cpu, 16-&gt;16-&gt;0 MB, 17 MB goal, 1 P
+gc 6 @15.065s 0%: 0.042+0.79+0.003 ms clock, 0.042+0.31/0.29/0+0.003 ms cpu, 16-&gt;16-&gt;0 MB, 17 MB goal, 1 P
+
+</code></pre></td></tr></table>
+</div>
+</div><p>前面排查内存问题使用的是inuse_space状态内存采用，表示采样时刻正在使用的内存，现在要查看累计分配的内存，有两种查看方式</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-fallback" data-lang="fallback">go tool pprof http://127.0.0.1:6060/debug/pprof/allocs
+go tool pprof --alloc_space http://127.0.0.1:6060/debug/pprof/heap
+</code></pre></td></tr></table>
+</div>
+</div><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-fallback" data-lang="fallback">$ go tool pprof --alloc_space http://127.0.0.1:6060/debug/pprof/heap
+Fetching profile over HTTP from http://127.0.0.1:6060/debug/pprof/heap
+Saved profile in /root/pprof/pprof.go-pprof-practice.alloc_objects.alloc_space.inuse_objects.inuse_space.005.pb.gz
+File: go-pprof-practice
+Type: alloc_space
+Time: Dec 17, 2020 at 1:49pm (CST)
+Entering interactive mode (type &#34;help&#34; for commands, &#34;o&#34; for options)
+(pprof) top
+Showing nodes accounting for 626.64MB, 99.45% of 630.08MB total
+Dropped 12 nodes (cum &lt;= 3.15MB)
+Showing top 10 nodes out of 17
+      flat  flat%   sum%        cum   cum%
+     624MB 99.03% 99.03%      624MB 99.03%  github.com/wolfogre/go-pprof-practice/animal/canidae/dog.(*Dog).Run (inline)
+    2.64MB  0.42% 99.45%     5.08MB  0.81%  compress/flate.NewWriter
+         0     0% 99.45%     5.08MB  0.81%  compress/gzip.(*Writer).Write
+         0     0% 99.45%   624.50MB 99.11%  github.com/wolfogre/go-pprof-practice/animal/canidae/dog.(*Dog).Live
+         0     0% 99.45%   624.50MB 99.11%  main.main
+         0     0% 99.45%     5.58MB  0.89%  net/http.(*ServeMux).ServeHTTP
+         0     0% 99.45%     5.58MB  0.89%  net/http.(*conn).serve
+         0     0% 99.45%     5.58MB  0.89%  net/http.HandlerFunc.ServeHTTP
+         0     0% 99.45%     5.58MB  0.89%  net/http.serverHandler.ServeHTTP
+         0     0% 99.45%     5.58MB  0.89%  net/http/pprof.Index
+(pprof) list Run
+Total: 630.08MB
+ROUTINE ======================== github.com/wolfogre/go-pprof-practice/animal/canidae/dog.(*Dog).Run in /root/go_workspace/src/github.com/wolfogre/go-pprof-practice/animal/canidae/dog/dog.go
+     624MB      624MB (flat, cum) 99.03% of Total
+         .          .     38:   log.Println(d.Name(), &#34;pee&#34;)
+         .          .     39:}
+         .          .     40:
+         .          .     41:func (d *Dog) Run() {
+         .          .     42:   log.Println(d.Name(), &#34;run&#34;)
+     624MB      624MB     43:   _ = make([]byte, 16 * constant.Mi)
+         .          .     44:}
+         .          .     45:
+         .          .     46:func (d *Dog) Howl() {
+         .          .     47:   log.Println(d.Name(), &#34;howl&#34;)
+         .          .     48:}
+(pprof)
+
+</code></pre></td></tr></table>
+</div>
+</div><p>Run 一直在申请内存，而Run又被for循环调用，所以总是在进行GC</p>
+<h3 id="goroutine-泄露">goroutine 泄露</h3>
+<p>通过在浏览器打开的bug页面，看到goroutine数量不符合预期，所以怀疑goroutine泄露</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-fallback" data-lang="fallback">$ go tool pprof http://127.0.0.1:6060/debug/pprof/goroutine
+Fetching profile over HTTP from http://127.0.0.1:6060/debug/pprof/goroutine
+Saved profile in /root/pprof/pprof.go-pprof-practice.goroutine.001.pb.gz
+File: go-pprof-practice
+Type: goroutine
+Time: Dec 17, 2020 at 2:02pm (CST)
+Entering interactive mode (type &#34;help&#34; for commands, &#34;o&#34; for options)
+(pprof) top
+Showing nodes accounting for 107, 100% of 107 total
+Showing top 10 nodes out of 47
+      flat  flat%   sum%        cum   cum%
+       105 98.13% 98.13%        105 98.13%  runtime.gopark
+         1  0.93% 99.07%          1  0.93%  net/http.(*connReader).backgroundRead
+         1  0.93%   100%          1  0.93%  runtime/pprof.runtime_goroutineProfileWithLabels
+         0     0%   100%          2  1.87%  bufio.(*Reader).ReadLine
+         0     0%   100%          2  1.87%  bufio.(*Reader).ReadSlice
+         0     0%   100%          2  1.87%  bufio.(*Reader).fill
+         0     0%   100%        100 93.46%  github.com/wolfogre/go-pprof-practice/animal/canidae/wolf.(*Wolf).Drink.func1
+         0     0%   100%          1  0.93%  github.com/wolfogre/go-pprof-practice/animal/canidae/wolf.(*Wolf).Howl
+         0     0%   100%          1  0.93%  github.com/wolfogre/go-pprof-practice/animal/canidae/wolf.(*Wolf).Howl.func1
+         0     0%   100%          1  0.93%  github.com/wolfogre/go-pprof-practice/animal/canidae/wolf.(*Wolf).Live
+(pprof) list wolf.*func1
+Total: 107
+ROUTINE ======================== github.com/wolfogre/go-pprof-practice/animal/canidae/wolf.(*Wolf).Drink.func1 in /root/go_workspace/src/github.com/wolfogre/go-pprof-practice/animal/canidae/wolf/wolf.go
+         0        100 (flat, cum) 93.46% of Total
+         .          .     29:
+         .          .     30:func (w *Wolf) Drink() {
+         .          .     31:   log.Println(w.Name(), &#34;drink&#34;)
+         .          .     32:   for i := 0; i &lt; 10; i++ {
+         .          .     33:           go func() {
+         .        100     34:                   time.Sleep(30 * time.Second)
+         .          .     35:           }()
+         .          .     36:   }
+         .          .     37:}
+         .          .     38:
+         .          .     39:func (w *Wolf) Shit() {
+
+</code></pre></td></tr></table>
+</div>
+</div><p>Drink函数中无意义的开启goroutine而又不能及时退出，导致泄露</p>
+<h3 id="锁竞争问题">锁竞争问题</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-fallback" data-lang="fallback">$ go tool pprof http://127.0.0.1:6060/debug/pprof/mutex
+Fetching profile over HTTP from http://127.0.0.1:6060/debug/pprof/mutex
+Saved profile in /root/pprof/pprof.go-pprof-practice.contentions.delay.001.pb.gz
+File: go-pprof-practice
+Type: delay
+Time: Dec 17, 2020 at 2:05pm (CST)
+Entering interactive mode (type &#34;help&#34; for commands, &#34;o&#34; for options)
+(pprof) top
+Showing nodes accounting for 41.01s, 100% of 41.01s total
+      flat  flat%   sum%        cum   cum%
+    41.01s   100%   100%     41.01s   100%  sync.(*Mutex).Unlock (inline)
+         0     0%   100%     41.01s   100%  github.com/wolfogre/go-pprof-practice/animal/canidae/wolf.(*Wolf).Howl.func1
+(pprof) list func1
+Total: 41.01s
+ROUTINE ======================== github.com/wolfogre/go-pprof-practice/animal/canidae/wolf.(*Wolf).Howl.func1 in /root/go_workspace/src/github.com/wolfogre/go-pprof-practice/animal/canidae/wolf/wolf.go
+         0     41.01s (flat, cum)   100% of Total
+         .          .     53:
+         .          .     54:   m := &amp;sync.Mutex{}
+         .          .     55:   m.Lock()
+         .          .     56:   go func() {
+         .          .     57:           time.Sleep(time.Second)
+         .     41.01s     58:           m.Unlock()
+         .          .     59:   }()
+         .          .     60:   m.Lock()
+         .          .     61:}
+
+</code></pre></td></tr></table>
+</div>
+</div><p>主协程加锁，子协程释放锁，但是释放之前等了1s，导致每次在这里都会延迟1s。
+这个case在实际业务中很可能真实存在，使用pprof主要关注在锁着里花费多少时间，锁是否是必要的，而不是要把锁竞争降低为0。比如把Sleep注释之后，再运行一段时间之后看这里消耗时间就很短了。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-fallback" data-lang="fallback">     flat  flat%   sum%        cum   cum%
+  175.72us   100%   100%   175.72us   100%  sync.(*Mutex).Unlock (inline)
+         0     0%   100%   175.72us   100%  github.com/wolfogre/go-pprof-practice/animal/canidae/wolf.(*Wolf).Howl.func1
+
+</code></pre></td></tr></table>
+</div>
+</div><h3 id="阻塞问题">阻塞问题</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-fallback" data-lang="fallback">$ go tool pprof http://127.0.0.1:6060/debug/pprof/block
+Fetching profile over HTTP from http://127.0.0.1:6060/debug/pprof/block
+Saved profile in /root/pprof/pprof.go-pprof-practice.contentions.delay.007.pb.gz
+File: go-pprof-practice
+Type: delay
+Time: Dec 17, 2020 at 2:11pm (CST)
+Entering interactive mode (type &#34;help&#34; for commands, &#34;o&#34; for options)
+(pprof) top
+Showing nodes accounting for 1.67mins, 100% of 1.67mins total
+Dropped 7 nodes (cum &lt;= 0.01mins)
+      flat  flat%   sum%        cum   cum%
+  1.67mins   100%   100%   1.67mins   100%  runtime.chanrecv1
+         0     0%   100%   1.67mins   100%  github.com/wolfogre/go-pprof-practice/animal/felidae/cat.(*Cat).Live
+         0     0%   100%   1.67mins   100%  github.com/wolfogre/go-pprof-practice/animal/felidae/cat.(*Cat).Pee
+         0     0%   100%   1.67mins   100%  main.main
+         0     0%   100%   1.67mins   100%  runtime.main
+(pprof) list cat.*Live
+Total: 1.67mins
+ROUTINE ======================== github.com/wolfogre/go-pprof-practice/animal/felidae/cat.(*Cat).Live in /root/go_workspace/src/github.com/wolfogre/go-pprof-practice/animal/felidae/cat/cat.go
+         0   1.67mins (flat, cum)   100% of Total
+         .          .     14:
+         .          .     15:func (c *Cat) Live() {
+         .          .     16:   c.Eat()
+         .          .     17:   c.Drink()
+         .          .     18:   c.Shit()
+         .   1.67mins     19:   c.Pee()
+         .          .     20:   c.Climb()
+         .          .     21:   c.Sneak()
+         .          .     22:}
+         .          .     23:
+         .          .     24:func (c *Cat) Eat() {
+(pprof) list cat.*Pee
+Total: 1.67mins
+ROUTINE ======================== github.com/wolfogre/go-pprof-practice/animal/felidae/cat.(*Cat).Pee in /root/go_workspace/src/github.com/wolfogre/go-pprof-practice/animal/felidae/cat/cat.go
+         0   1.67mins (flat, cum)   100% of Total
+         .          .     34:}
+         .          .     35:
+         .          .     36:func (c *Cat) Pee() {
+         .          .     37:   log.Println(c.Name(), &#34;pee&#34;)
+         .          .     38:
+         .   1.67mins     39:   &lt;-time.After(time.Second)
+         .          .     40:}
+         .          .     41:
+         .          .     42:func (c *Cat) Climb() {
+         .          .     43:   log.Println(c.Name(), &#34;climb&#34;)
+         .          .     44:}
+(pprof)
+
+</code></pre></td></tr></table>
+</div>
+</div><p>这里是从一个 channel 里读数据时，发生了阻塞，直到这个 channel 在一秒后才有数据读出，这就导致程序阻塞了一秒而非睡眠了一秒。
+这个跟排查mutex思路一样，主要关注阻塞了多长时间。</p>
+<h3 id="base的使用">base的使用</h3>
+<p>对于难以发现但是有怀疑有泄露的问题，可以将多次采样数据进行对比，得到第二次性能数据与第一次的差异值</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-fallback" data-lang="fallback">$ go tool pprof -base pprof.go-pprof-practice.goroutine.001.pb.gz pprof.go-pprof-practice.goroutine.002.pb.gz
+File: go-pprof-practice
+Type: goroutine
+Time: Dec 17, 2020 at 3:47pm (CST)
+Entering interactive mode (type &#34;help&#34; for commands, &#34;o&#34; for options)
+(pprof) top
+Showing nodes accounting for 30, 100% of 30 total
+      flat  flat%   sum%        cum   cum%
+        30   100%   100%         30   100%  runtime.gopark
+         0     0%   100%         30   100%  github.com/wolfogre/go-pprof-practice/animal/canidae/wolf.(*Wolf).Drink.func1
+         0     0%   100%         30   100%  time.Sleep
+(pprof) traces
+File: go-pprof-practice
+Type: goroutine
+Time: Dec 17, 2020 at 3:47pm (CST)
+-----------+-------------------------------------------------------
+        30   runtime.gopark
+             time.Sleep
+             github.com/wolfogre/go-pprof-practice/animal/canidae/wolf.(*Wolf).Drink.func1
+-----------+-------------------------------------------------------
+(pprof) list func1
+Total: 30
+ROUTINE ======================== github.com/wolfogre/go-pprof-practice/animal/canidae/wolf.(*Wolf).Drink.func1 in /root/go_workspace/src/github.com/wolfogre/go-pprof-practice/animal/canidae/wolf/wolf.go
+         0         30 (flat, cum)   100% of Total
+         .          .     29:
+         .          .     30:func (w *Wolf) Drink() {
+         .          .     31:   log.Println(w.Name(), &#34;drink&#34;)
+         .          .     32:   for i := 0; i &lt; 10; i++ {
+         .          .     33:           go func() {
+         .         30     34:                   time.Sleep(30 * time.Second)
+         .          .     35:           }()
+         .          .     36:   }
+         .          .     37:}
+         .          .     38:
+         .          .     39:func (w *Wolf) Shit() {
+
+</code></pre></td></tr></table>
+</div>
+</div><p>两次采样数据对比，发现挂起的goroutine增加了30个，说明肯定有goroutine泄露，traces和list配合，定位到是goroutine在Sleep</p>
+<h3 id="如何生成调用关系图和火焰图">如何生成调用关系图和火焰图</h3>
+<p>上面一直使用命令行查看信息，还可以获取调用图和火焰图，更方便查看。</p>
+<h4 id="如果调试环境只有go不能安装别的工具">如果调试环境只有go，不能安装别的工具</h4>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-fallback" data-lang="fallback">go tool pprof -alloc_objects -dot http://127.0.0.1:6060/debug/pprof/heap &gt; curator_alloc_objects.dot
+</code></pre></td></tr></table>
+</div>
+</div><p>先生成dot文件，然后将dot的内容粘贴到在线转换网站，在线生成png/svg</p>
+<h4 id="调试环境中安装graphviz">调试环境中安装graphviz</h4>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-fallback" data-lang="fallback">$ go tool pprof -alloc_space http://127.0.0.1:6060/debug/pprof/heap
+Fetching profile over HTTP from http://127.0.0.1:6060/debug/pprof/heap
+Saved profile in /root/pprof/pprof.curator.alloc_objects.alloc_space.inuse_objects.inuse_space.003.pb.gz
+File: curator
+Build ID: 160dbd4a14f08bcddc140bf239c74207ccd87a30
+Type: alloc_space
+Time: Dec 17, 2020 at 2:18pm (CST)
+Entering interactive mode (type &#34;help&#34; for commands, &#34;o&#34; for options)
+(pprof) svg
+Generating report in profile001.svg
+(pprof) png
+Generating report in profile001.png
+(pprof)
+
+</code></pre></td></tr></table>
+</div>
+</div><p>敲命令svg或者png生成对应格式的图片文件，下载查看</p>
+<h4 id="开启一个webserver查看">开启一个webserver查看</h4>
+<p>在已经安装好graphviz的go环境中</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-fallback" data-lang="fallback">go tool pprof -http=0.0.0.0:6061 -alloc_space http://127.0.0.1:6060/debug/pprof/heap
+</code></pre></td></tr></table>
+</div>
+</div><p><img src="_v_images/20201217142322105_11703.png" alt=""></p>
+<p>SAMPLE 可切换采样的数据
+Graph 可以查看调用关系图，框越大，线约粗代表内存消耗越大</p>
+<p><img src="_v_images/20201217142514355_30580.png" alt=""></p>
+<p>Flame Graph 查看火焰图
+<img src="_v_images/20201217142742773_18480.png" alt=""></p>
+<p>火焰图中越宽代表使用内存越多</p>
+<h3 id="hscs项目怎么定位到具体代码">HSCS项目怎么定位到具体代码</h3>
+<p>通常对于HSCS项目中的代码，使用命令行排查，再配合浏览器中查看调用图和火焰图已经能看到很多信息了。
+<code>list</code>会报错，因为HSCS的代码并不在调试环境中</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-fallback" data-lang="fallback">$ go tool pprof -alloc_space http://10.180.169.226:8899/debug/pprof/heap
+Fetching profile over HTTP from http://10.180.169.226:8899/debug/pprof/heap
+Saved profile in /root/pprof/pprof.curator.alloc_objects.alloc_space.inuse_objects.inuse_space.007.pb.gz
+File: curator
+
+</code></pre></td></tr></table>
+</div>
+</div><p>运行pprof命令之后，这边提示将采样文件保存在<code>/root/pprof/pprof.curator.alloc_objects.alloc_space.inuse_objects.inuse_space.007.pb.gz</code>，可以把文件导出，放在编译服务器上查看。</p>
+<ul>
+<li>将采样文件拷贝到编译服务器的项目目录下</li>
+<li>开启一个编译容器，做好代码目录映射</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-fallback" data-lang="fallback">sudo docker run -it -v /home/wjye/go_workspace/src/HSCS_MAIN:/root/hscs/ 10.100.1.254:5000/mygo:vlatest /bin/bash
+</code></pre></td></tr></table>
+</div>
+</div><ul>
+<li><code>go tool pprof /root/pprof/pprof.curator.alloc_objects.alloc_space.inuse_objects.inuse_space.007.pb.gz</code>，此时处在编译容器中，list可以看到对应的代码</li>
+</ul>
+<h2 id="runtimepprof使用">runtime/pprof使用</h2>
+<p>上面的net/http/pprof 提供WEB接口来使用pprof，本质上是把runtime/pprof封装，可以直接调用runtime/pprof的接口，具有很大的灵活性</p>
+<h3 id="cpu-1">cpu</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="kn">import</span> <span class="s">&#34;runtime/pprof&#34;</span>
+
+<span class="nx">cpuprofile</span> <span class="o">:=</span> <span class="s">&#34;cpu_test.prof&#34;</span>
+<span class="nx">f</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">os</span><span class="p">.</span><span class="nf">Create</span><span class="p">(</span><span class="nx">cpuprofile</span><span class="p">)</span>
+<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+    <span class="nx">log</span><span class="p">.</span><span class="nf">Fatal</span><span class="p">(</span><span class="s">&#34;Error to create cpu profile &#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+<span class="p">}</span>
+<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">pprof</span><span class="p">.</span><span class="nf">StartCPUProfile</span><span class="p">(</span><span class="nx">f</span><span class="p">);</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+    <span class="nx">log</span><span class="p">.</span><span class="nf">Fatal</span><span class="p">(</span><span class="s">&#34;Error to start cpu profile &#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+<span class="p">}</span>
+<span class="nx">time</span><span class="p">.</span><span class="nf">Sleep</span><span class="p">(</span><span class="mi">10</span> <span class="o">*</span> <span class="nx">time</span><span class="p">.</span><span class="nx">Second</span><span class="p">)</span>
+<span class="nx">pprof</span><span class="p">.</span><span class="nf">StopCPUProfile</span><span class="p">()</span>
+<span class="nx">f</span><span class="p">.</span><span class="nf">Close</span><span class="p">()</span>
+</code></pre></td></tr></table>
+</div>
+</div><h3 id="memory">memory</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="kn">import</span> <span class="s">&#34;runtime/pprof&#34;</span>
+
+<span class="nx">memprofile</span> <span class="o">:=</span> <span class="s">&#34;mem_test.prof&#34;</span>
+<span class="nx">f1</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">os</span><span class="p">.</span><span class="nf">Create</span><span class="p">(</span><span class="nx">memprofile</span><span class="p">)</span>
+<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+    <span class="nx">log</span><span class="p">.</span><span class="nf">Fatal</span><span class="p">(</span><span class="s">&#34;Error to create mem profile &#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+<span class="p">}</span>
+<span class="nx">runtime</span><span class="p">.</span><span class="nf">GC</span><span class="p">()</span>
+<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">pprof</span><span class="p">.</span><span class="nf">WriteHeapProfile</span><span class="p">(</span><span class="nx">f1</span><span class="p">);</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+    <span class="nx">log</span><span class="p">.</span><span class="nf">Fatal</span><span class="p">(</span><span class="s">&#34;Error to write mem profile &#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+<span class="p">}</span>
+<span class="nx">f1</span><span class="p">.</span><span class="nf">Close</span><span class="p">()</span>
+</code></pre></td></tr></table>
+</div>
+</div><h3 id="trace">trace</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="kn">import</span> <span class="s">&#34;runtime/trace&#34;</span>
+
+<span class="nx">traceprofile</span> <span class="o">:=</span> <span class="s">&#34;trace_test.prof&#34;</span>
+<span class="nx">f2</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">os</span><span class="p">.</span><span class="nf">Create</span><span class="p">(</span><span class="nx">traceprofile</span><span class="p">)</span>
+<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+    <span class="nx">log</span><span class="p">.</span><span class="nf">Fatal</span><span class="p">(</span><span class="s">&#34;Error to create trace profile &#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+<span class="p">}</span>
+<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">trace</span><span class="p">.</span><span class="nf">Start</span><span class="p">(</span><span class="nx">f2</span><span class="p">);</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+    <span class="nx">log</span><span class="p">.</span><span class="nf">Fatal</span><span class="p">(</span><span class="s">&#34;Error to write trace profile &#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+<span class="p">}</span>
+<span class="nx">f2</span><span class="p">.</span><span class="nf">Close</span><span class="p">()</span>
+</code></pre></td></tr></table>
+</div>
+</div><h3 id="其他">其他</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="kn">import</span> <span class="s">&#34;runtime/pprof&#34;</span>
+
+<span class="k">for</span> <span class="nx">_</span><span class="p">,</span> <span class="nx">name</span> <span class="o">:=</span> <span class="k">range</span> <span class="p">[]</span><span class="kt">string</span><span class="p">{</span><span class="s">&#34;allocs&#34;</span><span class="p">,</span> <span class="s">&#34;block&#34;</span><span class="p">,</span> <span class="s">&#34;goroutine&#34;</span><span class="p">,</span> <span class="s">&#34;heap&#34;</span><span class="p">,</span> <span class="s">&#34;mutex&#34;</span><span class="p">,</span> <span class="s">&#34;threadcreate&#34;</span><span class="p">}</span> <span class="p">{</span>
+    <span class="nx">p</span> <span class="o">:=</span> <span class="nx">pprof</span><span class="p">.</span><span class="nf">Lookup</span><span class="p">(</span><span class="nb">string</span><span class="p">(</span><span class="nx">name</span><span class="p">))</span>
+    <span class="k">if</span> <span class="nx">p</span> <span class="o">==</span> <span class="kc">nil</span> <span class="p">{</span>
+        <span class="nx">log</span><span class="p">.</span><span class="nf">Fatal</span><span class="p">(</span><span class="s">&#34;Error to get profile: &#34;</span><span class="p">,</span> <span class="nx">name</span><span class="p">)</span>
+    <span class="p">}</span>
+    <span class="k">if</span> <span class="nx">name</span> <span class="o">==</span> <span class="s">&#34;heap&#34;</span> <span class="p">{</span>
+        <span class="nx">runtime</span><span class="p">.</span><span class="nf">GC</span><span class="p">()</span>
+    <span class="p">}</span>
+    <span class="nx">file_name</span> <span class="o">:=</span> <span class="nx">name</span> <span class="o">+</span> <span class="s">&#34;_test.prof&#34;</span>
+    <span class="nx">f</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">os</span><span class="p">.</span><span class="nf">Create</span><span class="p">(</span><span class="nx">file_name</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+        <span class="nx">log</span><span class="p">.</span><span class="nf">Fatal</span><span class="p">(</span><span class="s">&#34;Error to create result file &#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+    <span class="p">}</span>
+    <span class="nx">p</span><span class="p">.</span><span class="nf">WriteTo</span><span class="p">(</span><span class="nx">f</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="nx">f</span><span class="p">.</span><span class="nf">Close</span><span class="p">()</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div><h2 id="golang的gc">Golang的GC</h2>
+<h3 id="实例程序">实例程序</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="kn">package</span> <span class="nx">main</span>
+
+<span class="kn">import</span> <span class="p">(</span>
+        <span class="s">&#34;log&#34;</span>
+        <span class="s">&#34;net/http&#34;</span>
+        <span class="nx">_</span> <span class="s">&#34;net/http/pprof&#34;</span>
+        <span class="s">&#34;runtime&#34;</span>
+        <span class="s">&#34;time&#34;</span>
+<span class="p">)</span>
+
+<span class="kd">func</span> <span class="nf">f</span><span class="p">()</span> <span class="p">{</span>
+        <span class="nx">container</span> <span class="o">:=</span> <span class="nb">make</span><span class="p">([]</span><span class="kt">int</span><span class="p">,</span> <span class="mi">8</span><span class="p">)</span>
+        <span class="nx">log</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="s">&#34;&gt; loop.&#34;</span><span class="p">)</span>
+        <span class="c1">// slice会动态扩容，用它来做堆内存的申请
+</span><span class="c1"></span>        <span class="k">for</span> <span class="nx">i</span> <span class="o">:=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="p">&lt;</span> <span class="mi">32</span><span class="o">*</span><span class="mi">1000</span><span class="o">*</span><span class="mi">1000</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span> <span class="p">{</span>
+                <span class="nx">container</span> <span class="p">=</span> <span class="nb">append</span><span class="p">(</span><span class="nx">container</span><span class="p">,</span> <span class="nx">i</span><span class="p">)</span>
+        <span class="p">}</span>
+        <span class="nx">log</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="s">&#34;&lt; loop.&#34;</span><span class="p">)</span>
+        <span class="c1">// container在f函数执行完毕后不再使用
+</span><span class="c1"></span><span class="p">}</span>
+
+<span class="kd">func</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">go</span> <span class="kd">func</span><span class="p">()</span> <span class="p">{</span>
+                <span class="nx">http</span><span class="p">.</span><span class="nf">ListenAndServe</span><span class="p">(</span><span class="s">&#34;0.0.0.0:10000&#34;</span><span class="p">,</span> <span class="kc">nil</span><span class="p">)</span>
+        <span class="p">}()</span>
+
+        <span class="nx">log</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="s">&#34;start.&#34;</span><span class="p">)</span>
+        <span class="nf">f</span><span class="p">()</span>
+
+        <span class="nx">log</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="s">&#34;force gc.&#34;</span><span class="p">)</span>
+        <span class="nx">runtime</span><span class="p">.</span><span class="nf">GC</span><span class="p">()</span> <span class="c1">// 调用强制gc函数
+</span><span class="c1"></span>
+        <span class="nx">log</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="s">&#34;done.&#34;</span><span class="p">)</span>
+        <span class="nx">time</span><span class="p">.</span><span class="nf">Sleep</span><span class="p">(</span><span class="mi">1</span> <span class="o">*</span> <span class="nx">time</span><span class="p">.</span><span class="nx">Hour</span><span class="p">)</span> <span class="c1">// 保持程序不退出
+</span><span class="c1"></span><span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div><p>程序运行后，已经打印了<code>done</code>，但是通过<code>top</code>以及status都看到进程仍然占用900多M内存</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-fallback" data-lang="fallback">  PID USER      PR  NI    VIRT    RES    SHR S  %CPU %MEM     TIME+ COMMAND
+16885 root      20   0 1844968 925588   2884 S   0.0  5.7   0:03.08 snippet_mem
+</code></pre></td></tr></table>
+</div>
+</div><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-fallback" data-lang="fallback">$ cat /proc/16885/status| grep Vm
+VmPeak:  1844968 kB
+VmSize:  1844968 kB
+VmLck:         0 kB
+VmPin:         0 kB
+VmHWM:    925588 kB
+VmRSS:    925588 kB
+VmData:  1831860 kB
+VmStk:       132 kB
+VmExe:      3524 kB
+VmLib:      2036 kB
+VmPTE:      1920 kB
+VmSwap:        0 kB
+
+</code></pre></td></tr></table>
+</div>
+</div><p>用top命令持续观察，能看到RES逐渐降低</p>
+<h3 id="开启gc-trace">开启GC trace</h3>
+<p>Go程序自带GC，可以通过环境变量<code>GODEBUG='gctrace=1'</code>来打印GC回收信息，详细信息在 <a href="https://godoc.org/runtime">https://godoc.org/runtime</a>。</p>
+<blockquote>
+<p>gctrace: 设置gctrace=1会使得垃圾回收器在每次回收时汇总所回收内存的大小以及耗时，
+并将这些内容汇总成单行内容打印到标准错误输出中。
+这个单行内容的格式以后可能会发生变化。
+目前它的格式：
+gc # @#s #%: #+#+# ms clock, #+#/#/#+# ms cpu, #-&gt;#-&gt;# MB, # MB goal, # P
+各字段的含义：
+gc #        GC次数的编号，每次GC时递增
+@#s         距离程序开始执行时的时间
+#%          GC占用的执行时间百分比
+#+&hellip;+#     GC使用的时间
+#-&gt;#-&gt;# MB  GC开始，结束，以及当前活跃堆内存的大小，单位M
+# MB goal   全局堆内存大小
+# P         使用processor的数量
+如果信息以&quot;(forced)&ldquo;结尾，那么这次GC是被runtime.GC()调用所触发。</p>
+</blockquote>
+<p>重新执行程序</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-fallback" data-lang="fallback">$ GODEBUG=&#39;gctrace=1&#39; ./snippet_mem
+2020/12/17 09:30:15 start.
+2020/12/17 09:30:15 &gt; loop.
+gc 1 @0.007s 4%: 0.039+3.0+0.007 ms clock, 0.15+0/1.7/0.47+0.028 ms cpu, 4-&gt;5-&gt;2 MB, 5 MB goal, 4 P
+gc 2 @0.011s 3%: 0.013+5.3+0.034 ms clock, 0.054+0/0.19/3.4+0.13 ms cpu, 5-&gt;6-&gt;4 MB, 6 MB goal, 4 P
+gc 3 @0.018s 8%: 0.024+6.3+0.006 ms clock, 0.096+0/6.2/0.17+0.024 ms cpu, 9-&gt;9-&gt;5 MB, 10 MB goal, 4 P
+gc 4 @0.025s 6%: 0.023+10+0.035 ms clock, 0.094+0/0.21/10+0.14 ms cpu, 13-&gt;13-&gt;8 MB, 14 MB goal, 4 P
+gc 5 @0.044s 4%: 0.036+15+0.037 ms clock, 0.14+0/0.26/15+0.14 ms cpu, 20-&gt;20-&gt;12 MB, 21 MB goal, 4 P
+gc 6 @0.063s 2%: 0.034+25+0.043 ms clock, 0.13+0/0.27/25+0.17 ms cpu, 32-&gt;32-&gt;19 MB, 33 MB goal, 4 P
+gc 7 @0.098s 1%: 0.036+46+0.039 ms clock, 0.14+0/0.24/46+0.15 ms cpu, 50-&gt;50-&gt;30 MB, 51 MB goal, 4 P
+gc 8 @0.171s 1%: 0.036+69+0.041 ms clock, 0.14+0/0.25/69+0.16 ms cpu, 78-&gt;78-&gt;47 MB, 79 MB goal, 4 P
+gc 9 @0.254s 0%: 0.038+115+0.008 ms clock, 0.15+0.005/0.26/112+0.033 ms cpu, 122-&gt;122-&gt;74 MB, 123 MB goal, 4 P
+gc 10 @0.392s 0%: 0.036+173+0.037 ms clock, 0.14+0/0.22/173+0.15 ms cpu, 191-&gt;191-&gt;116 MB, 192 MB goal, 4 P
+gc 11 @0.669s 7%: 0.038+255+0.039 ms clock, 0.15+0/249/0.25+0.15 ms cpu, 298-&gt;298-&gt;182 MB, 299 MB goal, 4 P
+gc 12 @0.974s 4%: 0.035+427+0.038 ms clock, 0.14+0/0.29/427+0.15 ms cpu, 466-&gt;466-&gt;284 MB, 467 MB goal, 4 P
+gc 13 @1.479s 3%: 0.039+702+0.039 ms clock, 0.15+0/0.24/702+0.15 ms cpu, 728-&gt;728-&gt;444 MB, 729 MB goal, 4 P
+2020/12/17 09:30:17 &lt; loop.
+2020/12/17 09:30:17 force gc.
+2020/12/17 09:30:17 done.
+gc 14 @2.190s 3%: 0.060+0.21+0.006 ms clock, 0.24+0/0.17/0.36+0.025 ms cpu, 444-&gt;444-&gt;0 MB, 888 MB goal, 4 P (forced)
+GC forced
+gc 15 @122.191s 0%: 0.050+0.26+0.005 ms clock, 0.20+0/0.22/0.37+0.022 ms cpu, 0-&gt;0-&gt;0 MB, 4 MB goal, 4 P
+GC forced
+gc 16 @242.192s 0%: 0.099+1.1+0.005 ms clock, 0.39+0/0.37/0.16+0.022 ms cpu, 0-&gt;0-&gt;0 MB, 4 MB goal, 4 P
+
+</code></pre></td></tr></table>
+</div>
+</div><p>在gc 14 @2.190s 时刻程序活跃的堆内存已经降到0 MB
+直到 gc 15 @122.191s 程序的堆内存才降到4MB，但是此时在系统中top看到程序还占用300多M内存</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-fallback" data-lang="fallback">  PID USER      PR  NI    VIRT    RES    SHR S  %CPU %MEM     TIME+ COMMAND
+27106 root      20   0 1711780 388568   2892 S   7.3  2.4   0:13.49 snippet_mem
+
+</code></pre></td></tr></table>
+</div>
+</div><p>直到 gc 16 @242.192s，top看到程序内存才稳定在31M。
+说明GC 回收内存之后，还给系统是有延迟的。
+上述GC回收的过程与内核版本有关，我的环境是<code>Linux master 3.10.0-1062.4.1.el7.x86_64 #1 SMP Fri Oct 18 17:15:30 UTC 2019 x86_64 x86_64 x86_64 GNU/Linux</code>，原因看下面MADV的内容</p>
+<h3 id="使用pprof定位gc问题">使用pprof定位gc问题</h3>
+<p>使用pprof来定位程序到底哪块使用内存较大，首先查看inuse_space使用情况</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-fallback" data-lang="fallback">$ go tool pprof -inuse_space http://127.0.0.1:10000/debug/pprof/heap
+Fetching profile over HTTP from http://127.0.0.1:10000/debug/pprof/heap
+Saved profile in /root/pprof/pprof.snippet_mem.alloc_objects.alloc_space.inuse_objects.inuse_space.004.pb.gz
+File: snippet_mem
+Type: inuse_space
+Time: Dec 17, 2020 at 9:39am (CST)
+No samples were found with the default sample value type.
+Try &#34;sample_index&#34; command to analyze different sample values.
+Entering interactive mode (type &#34;help&#34; for commands, &#34;o&#34; for options)
+(pprof) top
+Showing nodes accounting for 0, 0% of 0 total
+      flat  flat%   sum%        cum   cum%
+(pprof)
+</code></pre></td></tr></table>
+</div>
+</div><p>由于程序现在处于sleep函数中，实际使用的堆上内存为0。再看看alloc_space累计使用情况</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-fallback" data-lang="fallback">$ go tool pprof -alloc_space http://127.0.0.1:10000/debug/pprof/heap
+Fetching profile over HTTP from http://127.0.0.1:10000/debug/pprof/heap
+Saved profile in /root/pprof/pprof.snippet_mem.alloc_objects.alloc_space.inuse_objects.inuse_space.005.pb.gz
+File: snippet_mem
+Type: alloc_space
+Time: Dec 17, 2020 at 9:42am (CST)
+Entering interactive mode (type &#34;help&#34; for commands, &#34;o&#34; for options)
+(pprof) top
+Showing nodes accounting for 1.20GB, 100% of 1.20GB total
+      flat  flat%   sum%        cum   cum%
+    1.20GB   100%   100%     1.20GB   100%  main.f
+         0     0%   100%     1.20GB   100%  main.main
+         0     0%   100%     1.20GB   100%  runtime.main
+(pprof) list f
+Total: 1.20GB
+ROUTINE ======================== main.f in /root/go_workspace/src/demo/pprof-demo/snippet_mem.go
+    1.20GB     1.20GB (flat, cum)   100% of Total
+         .          .     11:func f() {
+         .          .     12:   container := make([]int, 8)
+         .          .     13:   log.Println(&#34;&gt; loop.&#34;)
+         .          .     14:   // slice会动态扩容，用它来做堆内存的申请
+         .          .     15:   for i := 0; i &lt; 32*1000*1000; i++ {
+    1.20GB     1.20GB     16:           container = append(container, i)
+         .          .     17:   }
+         .          .     18:   log.Println(&#34;&lt; loop.&#34;)
+         .          .     19:   // container在f函数执行完毕后不再使用
+         .          .     20:}
+         .          .     21:
+(pprof)
+
+</code></pre></td></tr></table>
+</div>
+</div><p>直接能看到是 <code>main.f</code> 函数中的切片扩展操作使用了很多内存</p>
+<h3 id="gc模式madv">GC模式MADV</h3>
+<blockquote>
+<p>一直以来 go 的 runtime 在释放内存返回到内核时，在 Linux 上使用的是 MADV_DONTNEED，虽然效率比较低，但是会让 RSS（resident set size 常驻内存集）数量下降得很快。不过在 go 1.12 里专门针对这个做了优化，runtime 在释放内存时，使用了更加高效的 MADV_FREE 而不是之前的 MADV_DONTNEED。这样带来的好处是，一次 GC 后的内存分配延迟得以改善，runtime 也会更加积极地将释放的内存归还给操作系统，以应对大块内存分配无法重用已存在的堆空间的问题。不过也会带来一个副作用：RSS 不会立刻下降，而是要等到系统有内存压力了，才会延迟下降。需要注意的是，MADV_FREE 需要 4.5 以及以上内核，否则 runtime 会继续使用原先的 MADV_DONTNEED 方式。当然 go 1.12 为了避免像这样一些靠判断 RSS 大小的自动化测试因此出问题，也提供了一个 GODEBUG=madvdontneed=1 参数可以强制 runtime 继续使用 MADV_DONTNEED：runtime: provide way to disable MADV_FREE。</p>
+</blockquote>
+<blockquote>
+<p>On Linux, the runtime now uses MADV_FREE to release unused memory. This is more efficient but may result in higher reported RSS. The kernel will reclaim the unused data when it is needed. To revert to the Go 1.11 behavior (MADV_DONTNEED), set the environment variable GODEBUG=madvdontneed=1.</p>
+</blockquote>
+<p>上面的例子在ubuntu 1804（内核5.4.0-54-generic）上运行，GC过程是这样</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-fallback" data-lang="fallback">GODEBUG=&#39;gctrace=1&#39; ./snippet_mem
+
+GC forced
+gc 31 @1324.731s 0%: 0.052+0.36+0.003 ms clock, 0.10+0/0.071/0.33+0.007 ms cpu, 0-&gt;0-&gt;0 MB, 4 MB goal, 2 P
+    PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND
+ 827080 root      20   0 2028996 777564   4572 S   0.0  19.3   0:01.60 snippet_mem
+</code></pre></td></tr></table>
+</div>
+</div><p>等了20多分钟，RES也没有下降，必须强制 <code>GODEBUG='gctrace=1,madvdontneed=1' ./snippet_mem</code>，使用madvdontneed模式才能快速将内存还给系统，降低RES，但是也需要2分钟之后才能完成。</p>
+<h1 id="一些精彩的参考资料">一些精彩的参考资料</h1>
+<p><a href="https://studygolang.com/articles/20157">如何分析golang程序的内存使用情况</a>
+<a href="https://godoc.org/runtime">package runtime</a>
+<a href="https://blog.detectify.com/2019/09/05/how-we-tracked-down-a-memory-leak-in-one-of-our-go-microservices/">How we tracked down (what seemed like) a memory leak in one of our Go microservices</a>
+<a href="https://blog.wolfogre.com/posts/go-ppof-practice/">golang pprof 实战</a>
+<a href="https://www.cnblogs.com/thinkeridea/p/10324806.html">【Go】优雅的读取http请求或响应的数据</a>
+<a href="https://www.freecodecamp.org/news/how-i-investigated-memory-leaks-in-go-using-pprof-on-a-large-codebase-4bec4325e192/">How I investigated memory leaks in Go using pprof on a large codebase</a>
+<a href="https://www.cnblogs.com/qcrao-2018/p/11832732.html">深度解密Go语言之 pprof</a>
+<a href="https://segmentfault.com/a/1190000019222661">实战Go内存泄露</a></p>
+
+    </div>
+
+    <div class="post-copyright">
+  <p class="copyright-item">
+    <span class="item-title">文章作者</span>
+    <span class="item-content">oldfo</span>
+  </p>
+  <p class="copyright-item">
+    <span class="item-title">上次更新</span>
+    <span class="item-content">
+        2021-03-22
+        
+    </span>
+  </p>
+  
+  
+</div>
+<footer class="post-footer">
+      
+      <nav class="post-nav">
+        
+        
+      </nav>
+    </footer>
+  </article>
+        </div>
+        
+
+  
+
+  
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="social-links">
+  <a href="http://oldfo.cn:8080/index.xml" type="application/rss+xml" class="iconfont icon-rss" title="rss"></a>
+</div>
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://gohugo.io">Hugo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/olOwOlo/hugo-theme-even">Even</a>
+  </span>
+
+  
+
+  <span class="copyright-year">
+    &copy; 
+    2017 - 
+    2021<span class="heart"><i class="iconfont icon-heart"></i></span><span>oldfo</span>
+  </span>
+</div>
+
+    </footer>
+
+    <div class="back-to-top" id="back-to-top">
+      <i class="iconfont icon-up"></i>
+    </div>
+  </div>
+  
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.2.1/dist/jquery.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/slideout@1.0.1/dist/slideout.min.js" integrity="sha256-t+zJ/g8/KXIJMjSVQdnibt4dlaDxc9zXr/9oNPeWqdg=" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.1.20/dist/jquery.fancybox.min.js" integrity="sha256-XVLffZaxoWfGUEbdzuLi7pwaUJv1cecsQJQqGLe7axY=" crossorigin="anonymous"></script>
+
+
+
+<script type="text/javascript" src="/js/main.min.c99b103c33d1539acf3025e1913697534542c4a5aa5af0ccc20475ed2863603b.js"></script>
+
+
+
+
+
+
+
+
+</body>
+</html>
