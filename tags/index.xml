@@ -5,6 +5,25 @@
     <link>http://oldfo.cn:8080/tags/</link>
     <description>Recent content in Tags on oldfo - 测试博客</description>
     <generator>Hugo -- gohugo.io</generator>
-    <language>zh-cn</language><atom:link href="http://oldfo.cn:8080/tags/index.xml" rel="self" type="application/rss+xml" />
+    <language>zh-cn</language>
+    <lastBuildDate>Sun, 28 Mar 2021 22:14:55 +0800</lastBuildDate><atom:link href="http://oldfo.cn:8080/tags/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>golang</title>
+      <link>http://oldfo.cn:8080/tags/golang/</link>
+      <pubDate>Sun, 28 Mar 2021 22:14:55 +0800</pubDate>
+      
+      <guid>http://oldfo.cn:8080/tags/golang/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>pprof</title>
+      <link>http://oldfo.cn:8080/tags/pprof/</link>
+      <pubDate>Sun, 28 Mar 2021 22:14:55 +0800</pubDate>
+      
+      <guid>http://oldfo.cn:8080/tags/pprof/</guid>
+      <description></description>
+    </item>
+    
   </channel>
 </rss>
